@@ -1,0 +1,68 @@
+package com.jugger.afc.entity;
+
+import com.jugger.afc.enums.LeaderApplicationStatus;
+import com.jugger.afc.enums.UserRole;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AppUser {
+
+    @Id
+    private UUID id;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    private String phone;
+
+    @Column(length = 150, unique = true)
+    private String email;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column(nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+
+    @Column(name = "leader_application_status", length = 30)
+    @Enumerated(EnumType.STRING)
+    private LeaderApplicationStatus leaderApplicationStatus;
+
+    @Column(name = "leader_application_requested_at")
+    private Instant leaderApplicationRequestedAt;
+
+    @Column(name = "leader_application_reviewed_at")
+    private Instant leaderApplicationReviewedAt;
+
+    @Column(name = "leader_application_reviewed_by")
+    private UUID leaderApplicationReviewedBy;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+}
