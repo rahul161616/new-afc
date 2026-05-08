@@ -2,22 +2,24 @@
 
 ## Backend Web Service
 
+Use Docker for the backend service. Render's native runtimes do not include Java, so a Node service will fail with `JAVA_HOME is not set`.
+
 Root directory:
 
 ```text
 .
 ```
 
-Build command:
+Runtime / Language:
 
-```bash
-./gradlew build
+```text
+Docker
 ```
 
-Start command:
+Dockerfile path:
 
-```bash
-java -jar build/libs/afc-0.0.1-SNAPSHOT.jar
+```text
+./Dockerfile
 ```
 
 Environment variables:
