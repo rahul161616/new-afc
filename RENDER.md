@@ -26,9 +26,7 @@ Environment variables:
 
 ```text
 SPRING_PROFILES_ACTIVE=dev
-DATABASE_URL=jdbc:postgresql://<host>:<port>/<database>
-DATABASE_USERNAME=<database-user>
-DATABASE_PASSWORD=<database-password>
+DATABASE_URL=<Render internal database URL>
 GOOGLE_CLIENT_ID=<google-client-id>.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=<google-client-secret>
 JWT_SECRET=<at-least-32-random-characters>
@@ -50,3 +48,5 @@ Database schema is managed by Liquibase. On first startup, the app applies:
 ```text
 src/main/resources/db/changelog/db.changelog-master.yaml
 ```
+
+Render usually provides PostgreSQL URLs as `postgresql://user:password@host/database`. The app converts that to the JDBC URL format during startup.
