@@ -42,3 +42,9 @@ BOOTSTRAP_MEMBER_PASSWORD=<member-password>
 ```
 
 For Google login, add the frontend URL to Google Cloud Console as an authorized JavaScript origin.
+
+Database schema is managed by Liquibase. On first startup, the app applies:
+
+```text
+src/main/resources/db/changelog/db.changelog-master.yaml
+```
