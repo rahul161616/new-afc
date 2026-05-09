@@ -4,6 +4,7 @@ import com.jugger.afc.entity.AppUser;
 import com.jugger.afc.enums.LeaderApplicationStatus;
 import com.jugger.afc.enums.UserRole;
 import com.jugger.afc.repository.AppUserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 @Component
+@Slf4j
 public class AdminBootstrapper implements CommandLineRunner {
     private final BootstrapAdminProperties bootstrapAdminProperties;
     private final AppUserRepository appUserRepository;
@@ -28,9 +30,11 @@ public class AdminBootstrapper implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        log.info("Starting bootstrap users");
         Instant now = Instant.now();
         upsertAdmin(now);
         upsertDemoMember(now);
+        log.info("Finished bootstrap users");
     }
 
     private void upsertAdmin(Instant now) {
@@ -53,6 +57,7 @@ public class AdminBootstrapper implements CommandLineRunner {
         }
 
         appUserRepository.save(adminUser);
+        log.info("Bootstrapped admin user id={} email={}", adminUser.getId(), adminUser.getEmail());
     }
 
     private void upsertDemoMember(Instant now) {
@@ -78,5 +83,6 @@ public class AdminBootstrapper implements CommandLineRunner {
         }
 
         appUserRepository.save(memberUser);
+        log.info("Bootstrapped demo member user id={} email={}", memberUser.getId(), memberUser.getEmail());
     }
 }

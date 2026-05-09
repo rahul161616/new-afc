@@ -10,6 +10,7 @@ import com.jugger.afc.enums.UserRole;
 import com.jugger.afc.repository.AppUserRepository;
 import com.jugger.afc.security.JwtProperties;
 import com.jugger.afc.security.JwtService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AuthService {
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
@@ -99,6 +101,7 @@ public class AuthService {
         }
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
+        log.info("Login attempt for email={}", normalizedEmail);
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
         );
@@ -106,6 +109,7 @@ public class AuthService {
         AppUser appUser = appUserRepository.findByEmailAndDeletedAtIsNull(normalizedEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
+        log.info("Login succeeded for userId={} role={}", appUser.getId(), appUser.getRole());
         return buildAuthResponse(appUser);
     }
 
@@ -129,6 +133,7 @@ public class AuthService {
         AppUser appUser = appUserRepository.findByEmailAndDeletedAtIsNull(normalizedEmail)
                 .orElseGet(() -> createGoogleUser(googleToken, normalizedEmail));
 
+        log.info("Google login succeeded for userId={} role={}", appUser.getId(), appUser.getRole());
         return buildAuthResponse(appUser);
     }
 
@@ -161,6 +166,7 @@ public class AuthService {
         try {
             return googleJwtDecoder.decode(credential);
         } catch (JwtException exception) {
+            log.warn("Google credential rejected: {}", exception.getMessage());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google credential");
         }
     }
@@ -183,10 +189,15 @@ public class AuthService {
                 .updatedAt(now)
                 .build();
 
-        return appUserRepository.save(appUser);
+        AppUser savedUser = appUserRepository.save(appUser);
+        log.info("Created user from Google login userId={}", savedUser.getId());
+        return savedUser;
     }
 
     private JwtDecoder buildGoogleJwtDecoder(String clientId) {
+        if (clientId == null || clientId.isBlank()) {
+            log.warn("Google client ID is not configured; Google login will reject credentials");
+        }
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri("https://www.googleapis.com/oauth2/v3/certs").build();
         OAuth2TokenValidator<Jwt> withIssuer = new JwtClaimValidator<>(
                 "iss",
