@@ -6,6 +6,8 @@ import com.jugger.afc.enums.UserRole;
 import com.jugger.afc.repository.AppUserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,7 @@ import java.time.Instant;
 
 @Component
 @Slf4j
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class AdminBootstrapper implements CommandLineRunner {
     private final BootstrapAdminProperties bootstrapAdminProperties;
     private final AppUserRepository appUserRepository;
