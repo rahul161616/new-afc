@@ -6,7 +6,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +78,16 @@ public class AfcApplication {
 
 	private static String decode(String value) {
 		return URLDecoder.decode(value, StandardCharsets.UTF_8);
+	}
+
+	@EventListener(ApplicationReadyEvent.class)
+	public void logApplicationReady(ApplicationReadyEvent event) {
+		Environment environment = event.getApplicationContext().getEnvironment();
+		log.info(
+				"AFC backend is ready address={} port={} health=/actuator/health",
+				environment.getProperty("server.address", "0.0.0.0"),
+				environment.getProperty("local.server.port", environment.getProperty("server.port", "8080"))
+		);
 	}
 
 }

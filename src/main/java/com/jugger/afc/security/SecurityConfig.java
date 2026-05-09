@@ -33,10 +33,16 @@ import java.io.IOException;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AppUserDetailsService appUserDetailsService;
+    private final RequestDiagnosticsFilter requestDiagnosticsFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AppUserDetailsService appUserDetailsService) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AppUserDetailsService appUserDetailsService,
+            RequestDiagnosticsFilter requestDiagnosticsFilter
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.appUserDetailsService = appUserDetailsService;
+        this.requestDiagnosticsFilter = requestDiagnosticsFilter;
     }
 
     @Bean
@@ -52,6 +58,7 @@ public class SecurityConfig {
                         .anyRequest().permitAll()
                 )
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(requestDiagnosticsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oAuth2->oAuth2.failureHandler(
                         new AuthenticationFailureHandler() {
