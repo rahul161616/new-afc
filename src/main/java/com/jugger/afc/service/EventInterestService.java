@@ -92,7 +92,8 @@ public class EventInterestService {
         FutsalEvent event = getActiveEvent(eventId);
         Instant now = Instant.now();
 
-        EventResponse eventResponse = eventResponseRepository.findByEventIdAndUserId(eventId, currentUser.getId())
+        var existingResponse = eventResponseRepository.findByEventIdAndUserId(eventId, currentUser.getId());
+        EventResponse eventResponse = existingResponse
                 .orElseGet(() -> EventResponse.builder()
                         .id(UUID.randomUUID())
                         .eventId(event.getId())
@@ -115,6 +116,18 @@ public class EventInterestService {
         }
 
         EventInterestStatus finalStatus = determineFinalStatus(event, eventResponse, normalizedRequestedStatus, now);
+
+        if (finalStatus == EventInterestStatus.NOT_AVAILABLE) {
+            existingResponse.ifPresent(eventResponseRepository::delete);
+            return EventInterestResponse.builder()
+                    .eventId(event.getId())
+                    .userId(currentUser.getId())
+                    .userName(currentUser.getName())
+                    .userEmail(currentUser.getEmail())
+                    .status(EventInterestStatus.NOT_AVAILABLE)
+                    .respondedAt(now)
+                    .build();
+        }
 
         eventResponse.setResponseStatus(finalStatus);
         eventResponse.setNote(request == null ? null : request.getNote());
