@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-event-venues
+      author: codex
+      changes:
+        - createTable:
+            tableName: futsal_event_venues
+            columns:
+              - column:
+                  name: event_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: venue_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: futsal_event_venues
+            baseColumnNames: event_id
+            referencedTableName: futsal_events
+            referencedColumnNames: id
+            constraintName: fk_event_venues_event
+        - addForeignKeyConstraint:
+            baseTableName: futsal_event_venues
+            baseColumnNames: venue_id
+            referencedTableName: venues
+            referencedColumnNames: id
+            constraintName: fk_event_venues_venue
+
+  - changeSet:
+      id: 009-backfill-event-venues
+      author: codex
+      dbms: postgresql
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              INSERT INTO futsal_event_venues (event_id, venue_id)
+              SELECT id, venue_id
+              FROM futsal_events
+              ON CONFLICT DO NOTHING;

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -18,6 +19,8 @@ public class EventSummaryResponse {
     private UUID id;
     private UUID groupId;
     private UUID venueId;
+    private List<UUID> venueIds;
+    private List<String> venueNames;
     private String title;
     private String description;
     private Instant startTime;

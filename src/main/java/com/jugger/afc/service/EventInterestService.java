@@ -7,6 +7,7 @@ import com.jugger.afc.dto.EventSummaryResponse;
 import com.jugger.afc.entity.AppUser;
 import com.jugger.afc.entity.EventResponse;
 import com.jugger.afc.entity.FutsalEvent;
+import com.jugger.afc.entity.Venue;
 import com.jugger.afc.enums.EventInterestStatus;
 import com.jugger.afc.enums.EventStatus;
 import com.jugger.afc.repository.EventResponseRepository;
@@ -65,6 +66,8 @@ public class EventInterestService {
                 .id(event.getId())
                 .groupId(event.getGroupId())
                 .venueId(event.getVenueId())
+                .venueIds(sortedVenues(event).stream().map(Venue::getId).toList())
+                .venueNames(sortedVenues(event).stream().map(Venue::getName).toList())
                 .title(event.getTitle())
                 .description(event.getDescription())
                 .startTime(event.getStartTime())
@@ -173,6 +176,8 @@ public class EventInterestService {
                 .id(event.getId())
                 .groupId(event.getGroupId())
                 .venueId(event.getVenueId())
+                .venueIds(sortedVenues(event).stream().map(Venue::getId).toList())
+                .venueNames(sortedVenues(event).stream().map(Venue::getName).toList())
                 .title(event.getTitle())
                 .description(event.getDescription())
                 .startTime(event.getStartTime())
@@ -259,6 +264,17 @@ public class EventInterestService {
                 counts.get(EventInterestStatus.WAITLISTED),
                 counts.get(EventInterestStatus.DROPPED)
         );
+    }
+
+    private List<Venue> sortedVenues(FutsalEvent event) {
+        return event.getVenues().stream()
+                .sorted((left, right) -> {
+                    String leftName = left.getName() == null ? "" : left.getName();
+                    String rightName = right.getName() == null ? "" : right.getName();
+                    int nameCompare = leftName.compareToIgnoreCase(rightName);
+                    return nameCompare != 0 ? nameCompare : left.getId().compareTo(right.getId());
+                })
+                .toList();
     }
 
     private EventInterestStatus normalizeRequestedStatus(EventInterestStatus requestedStatus) {

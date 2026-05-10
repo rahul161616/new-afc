@@ -19,6 +19,8 @@ public class EventDetailResponse {
     private UUID id;
     private UUID groupId;
     private UUID venueId;
+    private List<UUID> venueIds;
+    private List<String> venueNames;
     private String title;
     private String description;
     private Instant startTime;

@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -29,6 +31,15 @@ public class FutsalEvent {
 
     @Column(name = "venue_id", nullable = false)
     private UUID venueId;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "futsal_event_venues",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "venue_id")
+    )
+    @Builder.Default
+    private Set<Venue> venues = new LinkedHashSet<>();
 
     @Column(name = "start_time", nullable = false)
     private Instant startTime;

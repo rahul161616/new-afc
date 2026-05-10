@@ -111,6 +111,14 @@ public class DatabaseSchemaGuard implements CommandLineRunner {
                 """);
 
         jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS futsal_event_venues (
+                    event_id UUID NOT NULL,
+                    venue_id UUID NOT NULL,
+                    PRIMARY KEY (event_id, venue_id)
+                )
+                """);
+
+        jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS event_responses (
                     id UUID PRIMARY KEY,
                     event_id UUID NOT NULL,
@@ -132,8 +140,22 @@ public class DatabaseSchemaGuard implements CommandLineRunner {
         createForeignKeyIfMissing("fk_futsal_events_group", "futsal_events", "group_id", "futsal_groups", "id");
         createForeignKeyIfMissing("fk_futsal_events_venue", "futsal_events", "venue_id", "venues", "id");
         createForeignKeyIfMissing("fk_futsal_events_creator", "futsal_events", "created_by", "users", "id");
+        createForeignKeyIfMissing("fk_event_venues_event", "futsal_event_venues", "event_id", "futsal_events", "id");
+        createForeignKeyIfMissing("fk_event_venues_venue", "futsal_event_venues", "venue_id", "venues", "id");
         createForeignKeyIfMissing("fk_event_responses_event", "event_responses", "event_id", "futsal_events", "id");
         createForeignKeyIfMissing("fk_event_responses_user", "event_responses", "user_id", "users", "id");
+
+        jdbcTemplate.update("""
+                INSERT INTO futsal_event_venues (event_id, venue_id)
+                SELECT id, venue_id
+                FROM futsal_events
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM futsal_event_venues
+                    WHERE futsal_event_venues.event_id = futsal_events.id
+                      AND futsal_event_venues.venue_id = futsal_events.venue_id
+                )
+                """);
 
         log.info("Baseline database schema is ready");
     }

@@ -3,6 +3,7 @@ package com.jugger.afc.dto;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -14,6 +15,7 @@ import java.util.UUID;
 public class AddEventsAdminRequest {
     private UUID groupId;
     private UUID venueId;
+    private List<UUID> venueIds;
     private String title;
     private String description;
     private Instant startTime;

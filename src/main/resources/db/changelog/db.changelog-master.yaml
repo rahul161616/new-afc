@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/001-baseline-schema.yaml
   - include:
       file: db/changelog/changes/007-repair-baseline-schema.yaml
+  - include:
+      file: db/changelog/changes/008-event-venues.yaml
