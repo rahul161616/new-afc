@@ -4,30 +4,22 @@ import com.jugger.afc.dto.AddEventsAdminRequest;
 import com.jugger.afc.dto.AddEventsAdminResponse;
 import com.jugger.afc.entity.AppUser;
 import com.jugger.afc.entity.FutsalEvent;
-import com.jugger.afc.entity.Group;
-import com.jugger.afc.entity.GroupMember;
 import com.jugger.afc.enums.EventStatus;
-import com.jugger.afc.enums.GroupMemberRole;
-import com.jugger.afc.enums.GroupMemberStatus;
-import com.jugger.afc.enums.UserRole;
 import com.jugger.afc.repository.FutsalEventRepository;
-import com.jugger.afc.repository.GroupMemberRepository;
-import com.jugger.afc.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AddEventsByAdminService {
     private final FutsalEventRepository futsalEventRepository;
     private final CurrentUserService currentUserService;
-    private final GroupRepository groupRepository;
-    private final GroupMemberRepository groupMemberRepository;
+    private final EventPermissionService eventPermissionService;
 
     public AddEventsAdminResponse addEventsByAdmin(AddEventsAdminRequest addEventsAdminRequest){
         if (addEventsAdminRequest == null) return null;
@@ -48,7 +40,7 @@ public class AddEventsByAdminService {
         }
         Instant now = Instant.now();
         AppUser currentUser = currentUserService.requireCurrentUser();
-        ensureCanCreateEvent(addEventsAdminRequest, currentUser);
+        eventPermissionService.ensureCanCreateEvent(addEventsAdminRequest.getGroupId(), currentUser);
         FutsalEvent event = FutsalEvent.builder()
                 .groupId(addEventsAdminRequest.getGroupId())
                 .venueId(addEventsAdminRequest.getVenueId())
@@ -81,30 +73,83 @@ public class AddEventsByAdminService {
                 .build();
     }
 
-    private void ensureCanCreateEvent(AddEventsAdminRequest request, AppUser currentUser) {
-        if (currentUser.getRole() == UserRole.ADMIN || currentUser.getRole() == UserRole.LEADER) {
-            return;
+    public AddEventsAdminResponse updateEvent(UUID eventId, AddEventsAdminRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event update request cannot be null");
+        }
+        validateEventPayload(request);
+
+        FutsalEvent event = futsalEventRepository.findByIdAndDeletedAtIsNull(eventId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        AppUser currentUser = currentUserService.requireCurrentUser();
+        eventPermissionService.ensureCanManageEvent(event, currentUser);
+
+        if (request.getGroupId() != null && !event.getGroupId().equals(request.getGroupId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event group cannot be changed");
         }
 
-        Group group = groupRepository.findByIdAndDeletedAtIsNull(request.getGroupId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
+        event.setVenueId(request.getVenueId());
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setStartTime(request.getStartTime());
+        event.setEndTime(request.getEndTime());
+        event.setRequiredPlayers(request.getRequiredPlayers());
+        event.setMaxPlayers(request.getMaxPlayers());
+        event.setUpdatedAt(Instant.now());
 
-        if (currentUser.getId().equals(group.getCreatedBy())) {
-            return;
+        return toResponse(futsalEventRepository.save(event));
+    }
+
+    public void deleteEvent(UUID eventId) {
+        FutsalEvent event = futsalEventRepository.findByIdAndDeletedAtIsNull(eventId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        AppUser currentUser = currentUserService.requireCurrentUser();
+        eventPermissionService.ensureCanManageEvent(event, currentUser);
+
+        event.setDeletedAt(Instant.now());
+        event.setUpdatedAt(Instant.now());
+        futsalEventRepository.save(event);
+    }
+
+    private void validateEventPayload(AddEventsAdminRequest request) {
+        if (request.getVenueId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue id cannot be null");
         }
-
-        Optional<GroupMember> membership = groupMemberRepository.findByGroupIdAndUserId(
-                request.getGroupId(),
-                currentUser.getId()
-        );
-
-        boolean canCreateForGroup = membership
-                .filter(member -> member.getStatus() == GroupMemberStatus.APPROVED)
-                .filter(member -> member.getRole() == GroupMemberRole.OWNER || member.getRole() == GroupMemberRole.ORGANIZER)
-                .isPresent();
-
-        if (!canCreateForGroup) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only group leaders can create events for this group");
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title cannot be blank");
         }
+        if (request.getStartTime() == null || request.getEndTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start and end time are required");
+        }
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after start time");
+        }
+        if (request.getRequiredPlayers() == null || request.getMaxPlayers() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Player counts cannot be null");
+        }
+        if (request.getRequiredPlayers() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required players must be greater than 0");
+        }
+        if (request.getMaxPlayers() < request.getRequiredPlayers()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Max players must be greater than or equal to required players");
+        }
+    }
+
+    private AddEventsAdminResponse toResponse(FutsalEvent event) {
+        return AddEventsAdminResponse.builder()
+                .id(event.getId())
+                .groupId(event.getGroupId())
+                .venueId(event.getVenueId())
+                .title(event.getTitle())
+                .description(event.getDescription())
+                .startTime(event.getStartTime())
+                .endTime(event.getEndTime())
+                .requiredPlayers(event.getRequiredPlayers())
+                .maxPlayers(event.getMaxPlayers())
+                .status(event.getStatus())
+                .createdBy(event.getCreatedBy())
+                .createdAt(event.getCreatedAt())
+                .updatedAt(event.getUpdatedAt())
+                .build();
     }
 }

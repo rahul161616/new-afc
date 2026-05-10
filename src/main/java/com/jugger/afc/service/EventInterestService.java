@@ -30,15 +30,18 @@ public class EventInterestService {
     private final FutsalEventRepository futsalEventRepository;
     private final EventResponseRepository eventResponseRepository;
     private final CurrentUserService currentUserService;
+    private final EventPermissionService eventPermissionService;
 
     public EventInterestService(
             FutsalEventRepository futsalEventRepository,
             EventResponseRepository eventResponseRepository,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService,
+            EventPermissionService eventPermissionService
     ) {
         this.futsalEventRepository = futsalEventRepository;
         this.eventResponseRepository = eventResponseRepository;
         this.currentUserService = currentUserService;
+        this.eventPermissionService = eventPermissionService;
     }
 
     public List<EventSummaryResponse> getVisibleEvents() {
@@ -128,7 +131,9 @@ public class EventInterestService {
     }
 
     public List<EventInterestResponse> getEventInterests(UUID eventId) {
-        getActiveEvent(eventId);
+        FutsalEvent event = getActiveEvent(eventId);
+        AppUser currentUser = currentUserService.requireCurrentUser();
+        eventPermissionService.ensureCanManageEvent(event, currentUser);
 
         return eventResponseRepository.findAllByEventIdOrderByRespondedAtAsc(eventId)
                 .stream()
@@ -137,13 +142,6 @@ public class EventInterestService {
                     return toInterestResponse(response, user);
                 })
                 .toList();
-    }
-
-    public void deleteEvent(UUID eventId) {
-        FutsalEvent event = getActiveEvent(eventId);
-        event.setDeletedAt(Instant.now());
-        event.setUpdatedAt(Instant.now());
-        futsalEventRepository.save(event);
     }
 
     private FutsalEvent getActiveEvent(UUID eventId) {
